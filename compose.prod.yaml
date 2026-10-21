@@ -1,0 +1,33 @@
+services:
+  backend:
+    image: ghcr.io/vhvy/routeros-wg-web-backend:latest
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: ./config.json
+        target: /app/config.json
+        read_only: true
+        bind:
+          create_host_path: false
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+  frontend:
+    image: ghcr.io/vhvy/routeros-wg-web-frontend:latest
+    restart: unless-stopped
+    ports:
+      - "8088:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL

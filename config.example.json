@@ -1,0 +1,15 @@
+{
+  "router-address": "https://192.168.88.1",
+  "allowedIPs": ["0.0.0.0/0"],
+  "keepalive": 25,
+  "onlineSeconds": 180,
+  "interfaces": [
+    {
+      "name": "wireguard1",
+      "pool": "10.66.66.0/24",
+      "start": "10.66.66.2",
+      "end": "10.66.66.254",
+      "endpoint": "vpn.example.com:13231"
+    }
+  ]
+}

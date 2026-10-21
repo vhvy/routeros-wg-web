@@ -1,0 +1,87 @@
+dialog {
+  border: 1px solid #dfe6ea;
+  border-radius: 13px;
+  padding: 25px;
+  width: 480px;
+  max-width: calc(100vw - 32px);
+  max-height: 90vh;
+  color: #263346;
+  box-shadow: 0 20px 80px #10232d30;
+}
+dialog::backdrop {
+  background: #10202c66;
+  backdrop-filter: blur(3px);
+}
+.dialog-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.dialog-head h2 {
+  font-size: 20px;
+  margin: 0;
+}
+.dialog-head button {
+  border: 0;
+  padding: 6px;
+}
+.muted {
+  color: #8a96a3;
+  font-size: 12px;
+  line-height: 1.8;
+}
+form label {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 22px 0;
+  font-size: 12px;
+  font-weight: 550;
+}
+.auto-settings {
+  border-radius: 7px;
+  background: #f5f8f9;
+  padding: 15px;
+  font-size: 10px;
+  display: grid;
+  gap: 14px;
+}
+.auto-settings span {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.auto-settings code {
+  color: #5e7d73;
+  overflow-wrap: anywhere;
+}
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 25px;
+}
+.export {
+  text-align: center;
+}
+.export > p {
+  font-size: 12px;
+}
+.export img {
+  max-width: 100%;
+  height: auto;
+}
+.export details {
+  text-align: left;
+  font-size: 12px;
+}
+.export pre {
+  font-size: 10px;
+  background: #f3f6f8;
+  padding: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 220px;
+  overflow: auto;
+}

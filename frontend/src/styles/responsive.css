@@ -1,0 +1,150 @@
+@media (min-width: 1500px) {
+  td {
+    padding-top: 24px;
+    padding-bottom: 24px;
+  }
+}
+@media (max-width: 1150px) {
+  aside {
+    width: 190px;
+    padding: 30px 15px;
+  }
+  .workspace {
+    margin-left: 190px;
+  }
+  main:not(.login) {
+    padding: 30px 24px;
+  }
+  header {
+    padding: 0 24px;
+  }
+  .login {
+    gap: 45px;
+  }
+  .login-intro h1 {
+    font-size: 32px;
+  }
+}
+@media (max-width: 760px) {
+  aside {
+    position: static;
+    width: 100%;
+    padding: 17px 20px;
+    flex-direction: row;
+    align-items: center;
+  }
+  .shell {
+    display: block;
+  }
+  .brand {
+    font-size: 16px;
+  }
+  .brand small {
+    font-size: 7px;
+  }
+  .mark {
+    height: 29px;
+    width: 29px;
+    font-size: 19px;
+  }
+  .nav-label,
+  .nav,
+  .aside-bottom {
+    display: none;
+  }
+  .workspace {
+    margin: 0;
+  }
+  header {
+    height: 53px;
+    padding: 0 20px;
+  }
+  main:not(.login) {
+    padding: 27px 16px;
+  }
+  .page-title {
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .page-title h1 {
+    font-size: 26px;
+  }
+  .page-title p {
+    font-size: 10px;
+    line-height: 1.8;
+  }
+  .page-title .primary {
+    white-space: nowrap;
+    font-size: 11px;
+    padding: 10px 12px;
+    margin-top: 24px;
+  }
+  .stats {
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .stats article {
+    padding: 15px 12px;
+  }
+  .stats article > span {
+    font-size: 10px;
+  }
+  .stats strong {
+    font-size: 27px;
+  }
+  .stats small {
+    font-size: 8px;
+  }
+  .stats i {
+    display: none;
+  }
+  .panel-title {
+    padding: 19px 15px;
+  }
+  .sync {
+    font-size: 8px;
+  }
+  .toolbar {
+    padding: 0 14px 15px;
+    flex-wrap: wrap;
+  }
+  .search {
+    min-width: 100%;
+    max-width: none;
+  }
+  .toolbar select {
+    flex: 1;
+  }
+  .panel-footer {
+    padding: 15px;
+    font-size: 9px;
+  }
+  .footnote {
+    font-size: 8px;
+  }
+  .footnote span:last-child {
+    display: none;
+  }
+  .login {
+    display: block;
+    padding: 38px 20px;
+  }
+  .login-intro {
+    margin: 0 auto 35px;
+    width: min(380px, 100%);
+  }
+  .login-intro .brand {
+    margin-bottom: 35px;
+  }
+  .login-intro h1 {
+    font-size: 28px;
+  }
+  .intro-line {
+    display: none;
+  }
+  .login-card {
+    width: min(380px, 100%);
+    margin: auto;
+    padding: 28px;
+  }
+}

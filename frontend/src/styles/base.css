@@ -1,0 +1,81 @@
+:root {
+  font-family: Inter, "Segoe UI", "Microsoft YaHei", sans-serif;
+  color: #263346;
+  background: #f5f7fa;
+  font-synthesis: none;
+  font-weight: 400;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button,
+input,
+select {
+  font: inherit;
+}
+button,
+a,
+input,
+select {
+  outline-offset: 4px;
+}
+button {
+  border: 1px solid #dfe5eb;
+  background: white;
+  color: #43516a;
+  border-radius: 7px;
+  padding: 9px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 550;
+  transition: background 0.15s;
+}
+button:hover {
+  background: #eef2f6;
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+button.primary {
+  background: #34776a;
+  color: #fff;
+  border-color: #34776a;
+  padding: 12px 19px;
+  box-shadow: 0 3px 5px #1b503b14;
+}
+button.primary:hover {
+  background: #275e53;
+}
+button.danger {
+  background: #b43d46;
+  border-color: #b43d46;
+  color: white;
+}
+input,
+select {
+  border: 1px solid #dfe5eb;
+  border-radius: 7px;
+  background: #fff;
+  color: #263346;
+  padding: 11px 12px;
+  min-width: 0;
+}
+input:focus,
+select:focus {
+  outline: 2px solid #42887355;
+  border-color: #34776a;
+}
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+small {
+  color: #8994a3;
+  font-size: 11px;
+}

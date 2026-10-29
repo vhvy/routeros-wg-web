@@ -41,8 +41,11 @@ func targetURL(raw string) (*url.URL, error) {
 		return nil, err
 	}
 	host := u.Hostname()
-	ip, err := netip.ParseAddr(host)
-	if err != nil || ip.IsUnspecified() || ip.IsMulticast() || ip.Zone() != "" || (u.Scheme != "http" && u.Scheme != "https") || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") || u.Opaque != "" {
+	validHost := validHostname(host)
+	if ip, e := netip.ParseAddr(host); e == nil {
+		validHost = !ip.IsUnspecified() && !ip.IsMulticast() && ip.Zone() == ""
+	}
+	if !validHost || (u.Scheme != "http" && u.Scheme != "https") || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") || u.Opaque != "" || strings.HasSuffix(u.Host, ":") {
 		return nil, &url.Error{Op: "validate", URL: raw, Err: errTarget}
 	}
 	if port := u.Port(); port != "" {
@@ -52,6 +55,24 @@ func targetURL(raw string) (*url.URL, error) {
 		}
 	}
 	return u, nil
+}
+
+func validHostname(host string) bool {
+	name := strings.TrimSuffix(host, ".")
+	if len(name) == 0 || len(name) > 253 || strings.Trim(name, "0123456789.") == "" {
+		return false
+	}
+	for _, label := range strings.Split(name, ".") {
+		if len(label) == 0 || len(label) > 63 || label[0] == '-' || label[len(label)-1] == '-' {
+			return false
+		}
+		for _, c := range label {
+			if !(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '-') {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func handler(client *http.Client, settings bootstrap) http.Handler {
@@ -84,7 +105,7 @@ func handler(client *http.Client, settings bootstrap) http.Handler {
 		}
 		target, err := targetURL(in.Target)
 		if err != nil {
-			fail(w, 400, "转发目标必须为有效的 RouterOS HTTP(S) IP 地址")
+			fail(w, 400, "转发目标必须为有效的 RouterOS HTTP(S) IP 地址或域名，可包含端口")
 			return
 		}
 		ref, err := url.Parse(in.Path)

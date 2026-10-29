@@ -31,6 +31,7 @@ func TestProxyForwardsBrowserRequest(t *testing.T) {
 		_, _ = w.Write([]byte(`{".id":"*1"}`))
 	}))
 	defer upstream.Close()
+	upstream.URL = strings.Replace(upstream.URL, "127.0.0.1", "localhost", 1)
 	input := proxyRequest{Target: upstream.URL, Path: "/rest/interface/wireguard/peers/*1?.proplist=.id%2Cname", Method: "PATCH", Headers: map[string]string{"Authorization": "Basic dGVzdDp0ZXN0", "X-Request-ID": "test-request", "Host": "evil.example", "Connection": "X-Hop", "X-Hop": "drop"}, Body: json.RawMessage(`{"comment":"hello"}`)}
 	encoded, _ := json.Marshal(input)
 	req := httptest.NewRequest("POST", "/api/proxy", bytes.NewReader(encoded))
@@ -44,6 +45,19 @@ func TestProxyForwardsBrowserRequest(t *testing.T) {
 	}
 }
 
+func TestTargetURLHosts(t *testing.T) {
+	for _, target := range []string{"https://router.example.com", "http://router.example.com:8080", "https://router.example.com.:8443", "https://localhost", "http://192.168.233.1:8080", "https://[::1]:8443"} {
+		if _, err := targetURL(target); err != nil {
+			t.Errorf("valid target %q rejected: %v", target, err)
+		}
+	}
+	for _, target := range []string{"https://", "https://-router.example", "https://router-.example", "https://router..example", "https://router_example.com", "https://999.1.1.1", "https://router.example:0", "https://router.example:65536", "https://router.example:", "https://0.0.0.0", "https://224.0.0.1", "https://[fe80::1%25eth0]", "https://router.example/rest", "https://user:pass@router.example", "https://router.example?x=1", "https://router.example#x"} {
+		if _, err := targetURL(target); err == nil {
+			t.Errorf("invalid target %q accepted", target)
+		}
+	}
+}
+
 func TestProxyRejectsInvalidTransportBoundary(t *testing.T) {
 	for _, test := range []struct{ name, target, path, method string }{
 		{"external URL path", "http://127.0.0.1", "http://example.com/rest/x", "GET"},
@@ -52,7 +66,7 @@ func TestProxyRejectsInvalidTransportBoundary(t *testing.T) {
 		{"escaped traversal", "http://127.0.0.1", "/rest/%2e%2e/secret", "GET"},
 		{"network URL", "http://127.0.0.1", "//example.com/rest/x", "GET"},
 		{"unsupported scheme", "file://127.0.0.1", "/rest/system/resource", "GET"},
-		{"DNS target", "https://example.com", "/rest/system/resource", "GET"},
+		{"invalid DNS target", "https://-router.example.com", "/rest/system/resource", "GET"},
 		{"credentials in target", "http://user:password@127.0.0.1", "/rest/system/resource", "GET"},
 		{"unsupported method", "http://127.0.0.1", "/rest/system/resource", "CONNECT"},
 	} {

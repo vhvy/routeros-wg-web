@@ -178,7 +178,10 @@ export class WireGuardService {
         throw new Error("WireGuard 接口不存在、已禁用或没有地址池");
       const old = rows.find((row) => row[".id"] === editor.id);
       if (editor.id && !old) throw new Error("Peer 不存在");
-      const data: RouterRecord = { interface: editor.interface, comment };
+      const data: RouterRecord = {
+        interface: editor.interface,
+        comment,
+      };
       if (!old || old.interface !== editor.interface)
         data["allowed-address"] = allocate(
           c,
@@ -257,6 +260,9 @@ export class WireGuardService {
     const endpoint =
       c?.endpoint ??
       `${new URL(this.credentials.address).hostname}:${iface["listen-port"]}`;
-    return `[Interface]\nPrivateKey = ${privateKey}\nAddress = ${addresses.join(", ")}\n\n[Peer]\nPublicKey = ${pub}\n${hasPresharedKey(psk) ? `PresharedKey = ${psk}\n` : ""}Endpoint = ${endpoint}\nAllowedIPs = ${this.config.allowedIPs.join(", ")}\nPersistentKeepalive = ${this.config.keepalive}\n`;
+    const dns = this.config.dns?.length
+      ? `DNS = ${this.config.dns.join(", ")}\n`
+      : "";
+    return `[Interface]\nPrivateKey = ${privateKey}\nAddress = ${addresses.join(", ")}\n${dns}\n[Peer]\nPublicKey = ${pub}\n${hasPresharedKey(psk) ? `PresharedKey = ${psk}\n` : ""}Endpoint = ${endpoint}\nAllowedIPs = ${this.config.allowedIPs.join(", ")}\nPersistentKeepalive = ${this.config.keepalive}\n`;
   }
 }

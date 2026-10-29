@@ -36,6 +36,30 @@ test("RouterOS duration formats and absent handshakes", () => {
   assert.equal(handshakeSeconds("2d01:02:03"), 176523);
   assert.equal(handshakeSeconds("250ms"), 0.25);
 });
+test("router addresses accept domains with optional schemes and ports", () => {
+  for (const [input, expected] of [
+    ["router.example.com", "https://router.example.com"],
+    [" router.example.com:8443 ", "https://router.example.com:8443"],
+    ["http://router.example.com:8080", "http://router.example.com:8080"],
+    ["https://router.example.com", "https://router.example.com"],
+    ["https://[2001:db8::1]:8443", "https://[2001:db8::1]:8443"],
+  ]) assert.equal(normalizeAddress(input), expected);
+  for (const input of ["", "-router.example", "router..example", "router_example.me", "router.example:0", "router.example:65536", "ftp://router.example", "https://user:pass@router.example", "https://router.example/rest", "https://router.example?x=1", "https://router.example#x"])
+    assert.throws(() => normalizeAddress(input), input);
+  const config = { ...defaultConfig, "router-address": "router.example.com:8443" };
+  assert.equal(validateConfig(config), config);
+});
+test("production pool reports covering peer ranges and reserves all 11 addresses", () => {
+  const config = { ...iface, name: "wg1", pool: "10.76.0.0/24", start: "10.76.0.10", end: "10.76.0.20" };
+  assert.equal(allocate(config, [], [{ address: "10.76.0.1/24" }]), "10.76.0.10/32");
+  for (const range of ["10.76.0.2/24", "0.0.0.0/0"]) {
+    assert.throws(() => allocate(config, [{ ".id": "*A", interface: config.name, "allowed-address": range }], []), (error) => error.message.includes(range) && error.message.includes("Peer *A") && error.message.includes(config.start));
+  }
+  const peers = Array.from({ length: 11 }, (_, i) => ({ ".id": `*${i + 1}`, interface: config.name, "allowed-address": `10.76.0.${i + 10}/32` }));
+  assert.throws(() => allocate(config, peers, []), /地址池已满/);
+  assert.equal(allocate(config, peers.slice(0, 10), []), "10.76.0.20/32");
+  assert.equal(allocate(config, [{ ".id": "*A", interface: "other", "allowed-address": "0.0.0.0/0" }], []), "10.76.0.10/32");
+});
 test("configuration, comments and router addresses are validated in frontend", () => {
   const value = {
     ...defaultConfig,
@@ -45,6 +69,10 @@ test("configuration, comments and router addresses are validated in frontend", (
   assert.equal(validateConfig(value), value);
   assert.throws(() => validateConfig({ ...value, "router-address": "" }));
   assert.equal("dns" in defaultConfig, false);
+  for (const dns of [[], ["1.1.1.1"], ["10.76.0.1", "2606:4700:4700::1111"]])
+    assert.deepEqual(validateConfig({ ...value, dns }).dns, dns);
+  for (const dns of [null, "1.1.1.1", ["invalid"], ["1.1.1.1\nPostUp = bad"], ["1.1.1.1/32"], [42]])
+    assert.throws(() => validateConfig({ ...value, dns }), /DNS/);
   assert.throws(() =>
     validateConfig({ ...value, interfaces: [{ ...iface, start: "10.0.0.0" }] }),
   );

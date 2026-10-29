@@ -43,16 +43,16 @@ export function LoginPage({
       <form className="login-card" onSubmit={login}>
         <span className="eyebrow">WELCOME BACK</span>
         <h2>连接 RouterOS</h2>
-        <p>使用路由器的账号密码登录，IP 地址可直接修改。</p>
+        <p>使用路由器的账号密码登录，支持 IP、域名及端口。</p>
         <label>
-          路由器 IP / 地址
+          路由器 IP / 域名
           <input
             autoComplete="url"
             autoCapitalize="none"
             spellCheck={false}
             value={address}
             onChange={(e) => setAddress(e.target.value)}
-            placeholder="192.168.88.1"
+            placeholder="192.168.88.1 或 router.example.com:8443"
             required
             maxLength={256}
             disabled={busy}

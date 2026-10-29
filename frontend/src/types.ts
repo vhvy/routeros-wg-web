@@ -13,6 +13,7 @@ export type InterfaceConfig = {
 };
 export type VPNConfig = {
   allowedIPs: string[];
+  dns?: string[];
   "router-address": string;
   keepalive: number;
   onlineSeconds: number;

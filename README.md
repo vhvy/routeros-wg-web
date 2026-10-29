@@ -31,9 +31,9 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Vite 把 `/api` 转发到 `http://localhost:8080`。登录页填写 RouterOS 地址和它自己的账号密码。裸 IP 默认使用 HTTPS；只启用了 HTTP 的测试设备需要填写 `http://IP`。
+Vite 把 `/api` 转发到 `http://localhost:8080`。登录页填写 RouterOS 地址和它自己的账号密码。支持 IP、域名、域名加端口（例如 `router.example.com:8443`），以及带 `http://` 或 `https://` 的地址；省略协议时默认使用 HTTPS。只启用了 HTTP 的设备需要明确填写 `http://IP` 或 `http://域名:端口`。域名由后端所在主机或容器解析，端口为 RouterOS REST API 的 HTTP(S) 服务端口。
 
-应用配置统一放在项目根目录的 `config.json`。前端会根据 WireGuard 接口的 IPv4 地址（/16 至 /30）识别地址池，分配时避开网络地址、广播地址、路由器地址及同接口已有 Peer 地址。自动生成的客户端 endpoint 使用登录目标 IP 与该接口的监听端口；公网使用时可通过配置覆盖。
+应用配置统一放在项目根目录的 `config.json`。前端会根据 WireGuard 接口的 IPv4 地址（/16 至 /30）识别地址池，分配时避开网络地址、广播地址、路由器地址及同接口已有 Peer 地址。自动生成的客户端 endpoint 使用登录目标 IP 或域名与该接口的监听端口；公网使用时可通过配置覆盖。
 
 ## 配置
 
@@ -43,6 +43,7 @@ Vite 把 `/api` 转发到 `http://localhost:8080`。登录页填写 RouterOS 地
 {
   "router-address": "http://192.168.233.1",
   "allowedIPs": ["10.76.0.0/24"],
+  "dns": ["1.1.1.1", "2606:4700:4700::1111"],
   "keepalive": 25,
   "onlineSeconds": 180,
   "interfaces": [
@@ -58,6 +59,10 @@ Vite 把 `/api` 转发到 `http://localhost:8080`。登录页填写 RouterOS 地
 ```
 
 配置中没有声明的接口仍可从 RouterOS 的 IPv4 地址自动识别。接口没有有效地址池时只能查看，不能通过控制台创建 Peer。切换 Peer 所属接口会重新分配地址，需要重新导入客户端配置。
+
+`keepalive` 的单位为秒，仅用于客户端配置的 `PersistentKeepalive`，`0` 表示关闭；新建或编辑 Peer 时不写入 RouterOS 的 `persistent-keepalive`，已有的路由器端设置保持原样。`dns` 是可选的 IPv4 / IPv6 地址数组，配置后在导出的客户端 `[Interface]` 中生成 `DNS = ...`；省略或设置为空数组时不生成 DNS 行。DNS 仅写入客户端配置，不修改 RouterOS DNS。
+
+如果创建 Peer 提示“地址池已满或存在冲突”，页面会附上接口、分配范围及最多 5 条占用记录。同接口已有 Peer 的整个 `allowed-address` 网段（包括禁用的 Peer）都会保留，路由器 `/ip/address` 中的具体 IP 也会避开。例如分配范围 `10.76.0.10` 至 `10.76.0.20` 只有 11 个地址；已有 Peer 配成 `10.76.0.2/24` 或 `0.0.0.0/0` 时，会覆盖全部候选地址。可用 RouterOS 命令 `/interface/wireguard/peers/print detail where interface=wg1` 及 `/ip/address/print detail` 检查。普通客户端在路由器端的 `allowed-address` 通常使用该客户端的 `/32`；保留站点互联所需网段时，应规划不重叠的客户端地址池。顶层 `allowedIPs` 用于导出的客户端路由，不参与地址占用判断。修改配置后需要重启后端并刷新页面，可查看 `/api/bootstrap` 确认实际加载的配置。
 
 本项目不创建 WireGuard 接口，不设置 NAT、路由或防火墙。设备需要支持 WireGuard 和 REST API；实际可执行操作取决于登录用户的 RouterOS 权限。
 

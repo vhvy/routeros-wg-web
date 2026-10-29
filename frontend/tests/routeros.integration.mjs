@@ -5,12 +5,13 @@ import { readFile } from "node:fs/promises";
 import { x25519 } from "@noble/curves/ed25519.js";
 import { connect } from "../src/services/wireguard.ts";
 
-const config = JSON.parse(
+const fileConfig = JSON.parse(
   await readFile(new URL("../../config.json", import.meta.url), "utf8"),
 );
 let input = "";
 for await (const chunk of process.stdin) input += chunk;
 const options = JSON.parse(input || "{}");
+const config = options.config || fileConfig;
 const address = options.address || config["router-address"];
 const { username, password } = options;
 if (!username || !password)
@@ -109,7 +110,10 @@ try {
       await router("interface/wireguard?.proplist=name,public-key,listen-port")
     ).find((i) => i.name === iface);
   assert.ok(exported.includes(`PrivateKey = ${pair.privateKey}`));
-  assert.ok(!/^DNS\s*=/m.test(exported), "export must not contain DNS");
+  if (config.dns?.length)
+    assert.ok(exported.includes(`DNS = ${config.dns.join(", ")}\n`));
+  else
+    assert.ok(!/^DNS\s*=/m.test(exported), "unconfigured DNS must be omitted");
   assert.ok(exported.includes(`PublicKey = ${wg["public-key"]}`));
   assert.ok(exported.includes(`Address = ${p.address}`));
   assert.ok(exported.includes(`:${wg["listen-port"]}`));
@@ -123,12 +127,14 @@ try {
     "creation must submit the generated client private key",
   );
   const saved = (
-    await router("interface/wireguard/peers?.proplist=.id,private-key")
+    await router("interface/wireguard/peers?.proplist=.id,private-key,persistent-keepalive")
   ).find((p) => p[".id"] === first);
   assert.ok(
     saved?.["private-key"] === pair.privateKey,
     "RouterOS must retain the submitted client private key",
   );
+  assert.equal("persistent-keepalive" in submitted.body, false);
+  assert.ok(exported.includes(`PersistentKeepalive = ${config.keepalive}\n`));
   pass(
     "client public/private keys stored on RouterOS and exported from the returned peer",
   );
@@ -149,6 +155,23 @@ try {
     /只允许/,
   );
   pass("frontend edit validation preserves existing key and address");
+  await router(path(first), "PATCH", { "persistent-keepalive": "17s" });
+  const routerKeepalive = (await router(`${path(first)}?.proplist=persistent-keepalive`))["persistent-keepalive"];
+  const zeroKeepalive = await connect(
+    { address, username, password },
+    { ...config, keepalive: 0, dns: [] },
+  );
+  await zeroKeepalive.save({ id: first, interface: iface, comment: `${tag}-zero` });
+  const zeroPeer = await router(`${path(first)}?.proplist=persistent-keepalive`);
+  assert.equal(zeroPeer["persistent-keepalive"], routerKeepalive);
+  const zeroExport = await zeroKeepalive.export(first);
+  assert.ok(zeroExport.includes("PersistentKeepalive = 0\n"));
+  assert.ok(!/^DNS\s*=/m.test(zeroExport));
+  await service.save({ id: first, interface: iface, comment: `${tag}-restored` });
+  const restoredPeer = await router(`${path(first)}?.proplist=persistent-keepalive`);
+  assert.equal(restoredPeer["persistent-keepalive"], routerKeepalive);
+  assert.ok(forwarded.filter((request) => ["PUT", "PATCH"].includes(request.method)).every((request) => !("persistent-keepalive" in request.body)));
+  pass("client keepalive changes preserve RouterOS keepalive; empty DNS is omitted");
   await router(path(first), "PATCH", { disabled: "true" });
   assert.equal((await peer(first)).status, "disabled");
   const psk = randomBytes(32).toString("base64");

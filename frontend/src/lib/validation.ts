@@ -60,20 +60,32 @@ export function normalizeAddress(raw: string): string {
   try {
     url = new URL(address);
   } catch {
-    throw new Error("请输入有效的路由器 IP / 地址");
+    throw new Error("请输入有效的路由器 IP 或域名");
   }
   const host = url.hostname.replace(/^\[|\]$/g, "");
   if (
     !["http:", "https:"].includes(url.protocol) ||
-    !validIP(host) ||
+    !(validIP(host) || validHostname(host)) ||
+    (url.port !== "" && Number(url.port) < 1) ||
     url.username ||
     url.password ||
     url.search ||
     url.hash ||
     url.pathname !== "/"
   )
-    throw new Error("请输入路由器 IP，可包含 http(s):// 和端口，不要添加路径");
+    throw new Error("请输入路由器 IP 或域名，可包含 http(s):// 和端口，不要添加路径");
   return url.origin;
+}
+function validHostname(host: string): boolean {
+  const name = host.replace(/\.$/, "");
+  return (
+    name.length > 0 &&
+    name.length <= 253 &&
+    !/^[\d.]+$/.test(name) &&
+    name.split(".").every((label) =>
+      /^[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?$/i.test(label),
+    )
+  );
 }
 export function validateConfig(value: VPNConfig): VPNConfig {
   if (
@@ -92,6 +104,12 @@ export function validateConfig(value: VPNConfig): VPNConfig {
   )
     throw new Error("配置的路由器地址、路由、keepalive 或状态阈值无效");
   normalizeAddress(value["router-address"]);
+  if (
+    value.dns !== undefined &&
+    (!Array.isArray(value.dns) ||
+      !value.dns.every((address) => typeof address === "string" && validIP(address)))
+  )
+    throw new Error("DNS 配置必须是 IPv4 或 IPv6 地址数组");
   const seen = new Set<string>();
   for (const iface of value.interfaces) {
     const pool = prefix(iface.pool),
@@ -145,12 +163,15 @@ export function allocate(
   addresses: RouterRecord[],
   skip = "",
 ): string {
-  const occupied: { start: number; end: number }[] = [];
+  const occupied: { start: number; end: number; source: string }[] = [];
   for (const peer of peers) {
     if (peer[".id"] === skip || peer.interface !== config.name) continue;
     for (const address of (peer["allowed-address"] || "").split(",")) {
       try {
-        occupied.push(prefix(address.trim()));
+        occupied.push({
+          ...prefix(address.trim()),
+          source: `Peer ${peer[".id"]}${peer.comment ? ` (${peer.comment})` : ""}: ${address.trim()}`,
+        });
       } catch {
         /* IPv6 cannot conflict with an IPv4 pool. */
       }
@@ -159,7 +180,7 @@ export function allocate(
   for (const row of addresses) {
     try {
       const ip = prefix(row.address).ip;
-      occupied.push({ start: ip, end: ip });
+      occupied.push({ start: ip, end: ip, source: `路由器 ${row.interface || ""}: ${row.address}` });
     } catch {
       /* IPv6 address. */
     }
@@ -171,7 +192,12 @@ export function allocate(
     if (!occupied.some((p) => ip >= p.start && ip <= p.end))
       return `${ipString(ip)}/32`;
   }
-  throw new Error("地址池已满或存在冲突");
+  const start = ipv4(config.start);
+  const blockers = occupied.filter((p) => p.start <= end && p.end >= start);
+  const sources = [...new Set(blockers.map((p) => p.source))];
+  throw new Error(
+    `地址池已满或存在冲突：接口 ${config.name}，分配范围 ${config.start}–${config.end}。占用记录：${sources.slice(0, 5).join("；")}${sources.length > 5 ? `；另有 ${sources.length - 5} 条` : ""}。请检查同接口 Peer 的 allowed-address 是否包含覆盖地址池的网段。`,
+  );
 }
 export function handshakeSeconds(raw: string): number | undefined {
   if (!raw || ["never", "0", "0s"].includes(raw)) return undefined;
